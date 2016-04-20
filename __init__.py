@@ -156,6 +156,7 @@ def form_team_with_height_match(player_list, teams):
         teams[index] = (output_team_name, team_list[index])
 
 
+# for visualization of data/ debugging
 def print_teams():
     total_avg = 0
     total_count = 0
@@ -172,6 +173,8 @@ def print_teams():
         print()
     print('Entire team avg_height = {}'.format(total_avg / total_count))
 
+
+# main function entry point
 if __name__ == '__main__':
     player_list = load_file('soccer_players.csv')
     form_team_with_height_match(player_list, teams)
