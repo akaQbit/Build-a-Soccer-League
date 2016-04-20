@@ -5,6 +5,83 @@ dates = {"Dragons": "March 17, 1pm", "Sharks": "March 17, 3pm", "Raptors": "Marc
 teams = [("Dragons", []), ("Sharks", []), ("Raptors", [])]
 
 
+# helper functions
+def error_value(current_total, current, avg, num):
+    return abs((current_total + current) / num - avg)
+
+
+# fill team from team to team_fragment with fragment_size and height_average
+def fill_team(team, team_fragment, fragment_size, height_average):
+    current_value = 0
+    while len(team_fragment) < fragment_size:
+        min_error = sys.float_info.max
+        for member in team:
+            current_error = error_value(current_value, float(member["Height (inches)"]), height_average, len(team_fragment) + 1)
+            if current_error < min_error:
+                min_error_member = member
+                min_error = current_error
+                current_value += float(member["Height (inches)"])
+        team_fragment += [min_error_member]
+        team.remove(min_error_member)
+    return team
+
+
+# printing function
+def print_team_avg(team_fragment):
+    for fm in team_fragment:
+        print()
+        avg = 0
+        for m in fm:
+            avg += float(m['Height (inches)'])
+            print('{} : {}'.format(m['Name'], m['Height (inches)']))
+        avg /= len(fm)
+        print('average = {}'.format(avg))
+
+
+# get the average height of a fragment
+def get_frag_avg(frag):
+        avg = 0
+        for f in frag:
+            avg += f['Height (inches)']
+        return avg / len(frag)
+
+
+# an error function for fragment, less means better
+def frag_merge_error(frag1, frag2, e_avg):
+        avg = 0
+        for f in frag1:
+            avg += float(f['Height (inches)'])
+        for f in frag2:
+            avg += float(f['Height (inches)'])
+        avg /= (len(frag1) + len(frag2))
+        return abs(avg - e_avg)
+
+
+# merge fragment and return an merged list
+def frag_merge(frag1, frag2):
+        temp_list = []
+        for f in frag1:
+            temp_list.append(f)
+        for f in frag2:
+            temp_list.append(f)
+        return temp_list
+
+
+# join the fragments with respect to the expected_height
+def join_fragments(no_exp_frags, exp_frags, expected_average):
+    output_list = []
+    for no_exp_frag in no_exp_frags:
+        min_error = sys.float_info.max
+        for exp_frag in exp_frags:
+            error = frag_merge_error(no_exp_frag, exp_frag, expected_average)
+            if error < min_error:
+                min_error = error
+                merge_target = exp_frag
+        output_list.append(frag_merge(no_exp_frag, merge_target))
+        exp_frags.remove(merge_target)
+    return output_list
+
+
 # load csv file from filename and return the list of dictionary
 def load_file(filename):
     with open(filename) as csvfile:
@@ -39,6 +116,7 @@ def form_team(player_list, teams):
 # generate letters to the guardians
 def generate_personalized_letters(teams, dates):
     letter_template = """
+{guardian_name}
 Team practice of {team}
 
 {time}, {name} is going to attend the team practice,
@@ -53,76 +131,12 @@ Vincent de Soshified
     for (team_name, members) in teams:
         for member in members:
             with open('{}.txt'.format(member['Guardian Name(s)']), 'w') as file:
-                file.write(letter_template.format(team=team_name, name=member['Name'], time=dates[team_name]))
+                file.write(letter_template.format(guardian_name=member['Guardian Name(s)'], team=team_name, name=member['Name'], time=dates[team_name]))
 
 
 # swap player's to limit each team’s average height is within 1 inch of the others
 # form the team by their experience and return a list of formed team
 def form_team_with_height_match(player_list, teams):
-    def error_value(current_total, next, avg, num):
-        return abs((current_total + next) / num - avg)
-
-    def fill_team(team, team_fragment, fragment_size, height_average):
-        current_value = 0
-        while len(team_fragment) < fragment_size:
-            min_error = sys.float_info.max
-            for member in team:
-                current_error = error_value(current_value, float(member["Height (inches)"]), height_average, len(team_fragment) + 1)
-                if current_error < min_error:
-                    min_error_member = member
-                    min_error = current_error
-                    current_value += float(member["Height (inches)"])
-            team_fragment += [min_error_member]
-            team.remove(min_error_member)
-        return team
-
-    def print_team_avg(team_fragment):
-        for fm in team_fragment:
-            print()
-            avg = 0
-            for m in fm:
-                avg += float(m['Height (inches)'])
-                print('{} : {}'.format(m['Name'], m['Height (inches)']))
-            avg /= len(fm)
-            print('average = {}'.format(avg))
-
-    def join_fragments(no_exp_frags, exp_frags, expected_average):
-        output_list = []
-
-        def get_frag_avg(frag):
-            avg = 0
-            for f in frag:
-                avg += f['Height (inches)']
-            return avg / len(frag)
-
-        def frag_merge_error(frag1, frag2, e_avg):
-            avg = 0
-            for f in frag1:
-                avg += float(f['Height (inches)'])
-            for f in frag2:
-                avg += float(f['Height (inches)'])
-            avg /= (len(frag1) + len(frag2))
-            return abs(avg - e_avg)
-
-        def frag_merge(frag1, frag2):
-            temp_list = []
-            for f in frag1:
-                temp_list.append(f)
-            for f in frag2:
-                temp_list.append(f)
-            return temp_list
-
-        for no_exp_frag in no_exp_frags:
-            min_error = sys.float_info.max
-            for exp_frag in exp_frags:
-                error = frag_merge_error(no_exp_frag, exp_frag, expected_average)
-                if error < min_error:
-                    min_error = error
-                    merge_target = exp_frag
-            output_list.append(frag_merge(no_exp_frag, merge_target))
-            exp_frags.remove(merge_target)
-        return output_list
-
     exp_team = []
     exp_team_fragments = []
     no_exp_team = []
